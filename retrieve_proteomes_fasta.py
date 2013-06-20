@@ -1,7 +1,13 @@
 #!/usr/bin/python
+"""
+Script: retrieve_proteomes_fasta.py
+
+Retrieve all complete/reference proteomes from (high hierarchy) taxon(s).
+===================================================================================
+Author: Alejandro Barrera
+email: aebmad@gmail.com
+"""
 import sys
-import re
-import os
 import subprocess
 import fileinput
 import urllib2
@@ -20,15 +26,6 @@ class Usage(Exception):
 
 
 def main():
-
-    """
-    Script: retrieve_proteomes_fasta.py
-
-    Retrieve all complete/reference proteomes from (high hierarchy) taxon(s).
-    ===================================================================================
-    Author: Alejandro Barrera
-    email: aebmad@gmail.com
-    """
 
     try:
         ## Reads taxid, try to download as a reference proteome. if not a complete
