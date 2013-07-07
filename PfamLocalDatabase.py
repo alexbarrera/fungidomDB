@@ -29,7 +29,7 @@ class Database:
         self.db = MySQLdb.connect(host="localhost", user="root", passwd="569291", db="pfam27")
         self.cursor = self.db.cursor(MySQLdb.cursors.DictCursor)
 
-    def speciesProteinArchitectureIterator(self):
+    def getSpeciesProteinArchitectureIterator(self):
         """
         Retrieve a cursor to iterate over the results.
 
@@ -70,8 +70,92 @@ class Database:
                                         from architecture a2
                                             inner join pfamseq pf2 on a2.auto_architecture = pf2.auto_architecture
                                             inner join protein p2 on pf2.pfamseq_acc = p2.accession
-                                        where p2.specie <> 'Homo sapiens'
-                                          and p2.taxonomy like 'Eukaryota; Fungi%'"""
+                                        where p2.taxonomy like 'Eukaryota; Fungi%'"""
+            )
+            return self.cursor
+
+        except MySQLdb.Error, e:
+            print e
+            raise DatabaseError(e)
+
+    def getSpeciesPhylumIterator(self):
+        """
+        List of species per phylum
+
+        :return: Cursor iterator. Query fields: architecture, protein, architecture
+        :raise: DatabaseError
+        """
+        try:
+            # retrieve species, protein accession and pfam architectures
+            self.cursor.execute("""
+                    select distinct
+                        substring_index(substring_index(p.taxonomy, ';', 4),'; ',-1) as phylum,
+                        p.specie as species
+                    from protein p
+                    where p.specie <> 'Homo sapiens'
+                      and substring_index(substring_index(p.taxonomy, ';', 4),';',-1)  is not null
+                    order by phylum, species;
+                    """
+            )
+            return self.cursor
+
+        except MySQLdb.Error, e:
+            print e
+            raise DatabaseError(e)
+
+    def getArchitecturesIterator(self):
+        """
+        Architecture (accession and name), and taxonomical information (phylum, subphylum, species, strains)
+         for all fungal proteins in the database.
+
+        :return: Cursor iterator. Query fields: architecture, protein, architecture
+        :raise: DatabaseError
+        """
+        try:
+            # retrieve species, protein accession and pfam architectures
+            self.cursor.execute("""
+                select distinct
+                    substring_index(substring_index(p.taxonomy, '; ', 4),'; ',-1) as phylum,
+                    substring_index(substring_index(p.taxonomy, '; ', 5),'; ',-1) as subphylum,
+                    substring_index(substring_index(p.taxonomy, '; ', 8),'; ',-1) as "order",
+                    replace(substring_index(p.taxonomy, '; ',-1), '.','') as genus ,
+                    substring_index(p.specie, ' (', 1) as species,
+                    p.specie as strains,
+                    a.architecture,
+                    a.architecture_acc
+                from architecture a
+                    inner join pfamseq pf on pf.auto_architecture = a.auto_architecture
+                    inner join protein p on pf.pfamseq_acc = p.accession
+                where p.taxonomy like "Eukaryota; Fungi%"
+                  and pf.auto_architecture <> 0"""
+            )
+            return self.cursor
+
+        except MySQLdb.Error, e:
+            print e
+            raise DatabaseError(e)
+
+    def getTaxonomyIterator(self):
+        """
+        Architecture (accession and name), and taxonomical information (phylum, subphylum, species, strains)
+         for all fungal proteins in the database.
+
+        :return: Cursor iterator. Query fields: architecture, protein, architecture
+        :raise: DatabaseError
+        """
+        try:
+            # retrieve species, protein accession and pfam architectures
+            self.cursor.execute("""
+                select distinct
+                    substring_index(substring_index(p.taxonomy, '; ', 4),'; ',-1) as phylum,
+                    substring_index(substring_index(p.taxonomy, '; ', 5),'; ',-1) as subphylum,
+                    substring_index(substring_index(p.taxonomy, '; ', 8),'; ',-1) as "order",
+                    replace(substring_index(p.taxonomy, '; ',-1), '.','') as genus ,
+                    substring_index(p.specie, ' (', 1) as species,
+                    specie as strains
+                from protein p
+                where p.taxonomy like "Eukaryota; Fungi%";
+                ; """
             )
             return self.cursor
 

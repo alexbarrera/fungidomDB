@@ -13,7 +13,7 @@ Domain exclusive by pathogen type.
 Generates a tab-separate file with columns:
     - pathogen_type. Possible values:
         4: Over 100 strains in two epidemiologic studies in Spain (FILPOP and CANDIPOP).
-        3: Over 50strains in Candipop or 20 strains in FILPOP, or very frequent worldwide (www.life-worldwide.org).
+        3: Over 50 strains in Candipop or 20 strains in FILPOP, or very frequent worldwide (www.life-worldwide.org).
         2: Isolated in Candipop, Filpop or frequent dermatophytes.
         1: Strains present in our collection of clinical isolates (all coming from hospitals)
         0: Not defined criteria.
@@ -32,8 +32,8 @@ email: aebmad@gmail.com
 """
 __author__ = 'abarrera'
 
-def generateDomainsDataStructure(db):
 
+def generateDomainsDataStructure(db):
     """
     Create a dictionary with pfam domains exclusive in a single pathogen type group
     :param db: database object
@@ -63,6 +63,7 @@ def generateDomainsDataStructure(db):
 
     return pfam_pathogen_dict, pfam_dict
 
+
 def main():
     try:
         db = Database()
@@ -79,6 +80,7 @@ def main():
         pathogen_type = pathogen_type_list[0]
         print(pathogen_type, pfam_id, pfam_acc, description, sep="\t")
     return 1
+
 
 if __name__ == '__main__':
     status = main()

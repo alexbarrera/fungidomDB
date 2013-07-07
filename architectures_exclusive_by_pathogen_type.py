@@ -7,7 +7,6 @@ import operator
 from PfamLocalDatabase import Database, DatabaseError
 
 """
-
 Domain architectures exclusive by pathogen type, present only in species
 belonging to the same pathogen type
 
@@ -34,7 +33,6 @@ __author__ = 'abarrera'
 
 
 def generateArchitectureDataStructure(db):
-
     """
     Create a dictionary with domain architectures exclusive in a single pathogen type group.
     :param db: database object
@@ -43,7 +41,6 @@ def generateArchitectureDataStructure(db):
         value: list of pathogen_type
             (it might contain duplicates, but all values are equal => convert to set)
     """
-    architecture_exclusive = defaultdict((list))
     architecture_pathogen_dict = defaultdict(list)
     for row in db.getArchitecturePathogenTypeIterator():
         species = row['species']
@@ -59,9 +56,6 @@ def generateArchitectureDataStructure(db):
         #       it should have only has 1 pathogen_type
         if len(set(architecture_pathogen_dict[(architecture_iter, architecture_acc_iter)])) != 1:
             architecture_pathogen_dict.pop((architecture_iter, architecture_acc_iter), None)
-            # pathogen_type_iter = architecture_pathogen_dict[(architecture_iter, architecture_acc_iter)][0]
-            # architecture_exclusive[pathogen_type_iter].append((architecture_iter, architecture_acc_iter))
-    # return architecture_exclusive
     return architecture_pathogen_dict
 
 
@@ -75,15 +69,13 @@ def main():
         sys.exit(1)
 
     print("pathogen_type\tarchitecture_name\tarchitecture_acc")
-    # for pathogen_type in sorted(architectures):
-    #     for architecture, architecture_acc in sorted(architectures[pathogen_type]):
-    #         print(pathogen_type, architecture, architecture_acc, sep="\t")
-    # return 1
-    for architecture_descriptors, pathogen_type_list in sorted(architectures.iteritems(), key=operator.itemgetter(1, 0)):
+    for architecture_descriptors, pathogen_type_list in sorted(architectures.iteritems(),
+                                                               key=operator.itemgetter(1, 0)):
         architecture, architecture_acc = architecture_descriptors
         pathogen_type = pathogen_type_list[0]
         print(pathogen_type, architecture, architecture_acc, sep="\t")
     return 1
+
 
 if __name__ == '__main__':
     status = main()

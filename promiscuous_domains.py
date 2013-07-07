@@ -45,6 +45,7 @@ class Domain:
     def set_weigthed_bigram_freq(self, wbf):
         self.weighted_bigram_freq = wbf
 
+
 def processDomainPromiscuity(domain=None, key_species=None, bigrams=None):
     """
     Calculate domain promiscuity following Kullback-Leibler formula. Params:
@@ -76,45 +77,45 @@ def processDomainPromiscuity(domain=None, key_species=None, bigrams=None):
         return
     t = len(bigrams)
     n_i = bigrams[key_species][domain]['appearances']
-    N  = 0
+    N = 0
     sum_i_t = 0
     protein_list = []
     for domain_iter in bigrams[key_species]:
-        N +=  bigrams[key_species][domain_iter]['appearances']
+        N += bigrams[key_species][domain_iter]['appearances']
         sum_i_t += len(set(bigrams[key_species][domain_iter]['neighbours']))
         protein_list.append(bigrams[key_species][domain_iter]['proteins'])
 
-    p_t = len(set([ iter for sublist in protein_list for iter in sublist]))
+    p_t = len(set([iter for sublist in protein_list for iter in sublist]))
 
     f_i = n_i / N
 
     # promiscuity value of a singleton, a domain present only once in the genome
     # and having only one bigram type, is taken as the cutoff
-    singleton_pi_i =  (1 / (0.5*sum_i_t)) * log((1 / (0.5*sum_i_t)) / (1/N), 10)
+    singleton_pi_i = (1 / (0.5 * sum_i_t)) * log((1 / (0.5 * sum_i_t)) / (1 / N), 10)
 
-    beta_i = T_i / (0.5*sum_i_t)
-    pi_i = beta_i * log(beta_i/f_i, 10)
+    beta_i = T_i / (0.5 * sum_i_t)
+    pi_i = beta_i * log(beta_i / f_i, 10)
 
     # Calculate Weight Score
     f_d = T_i
     IV_d = 1 / f_d
 
     p_d = len(set(bigrams[key_species][domain]['proteins']))
-    IAF_d = log(p_t/p_d, 2)
+    IAF_d = log(p_t / p_d, 2)
 
     weight_score = IAF_d * IV_d
 
     # Output writen to STDOUT
-    print (key_species, domain, T_i, pi_i, singleton_pi_i, IAF_d, IV_d, weight_score, sep='\t')
+    print(key_species, domain, T_i, pi_i, singleton_pi_i, IAF_d, IV_d, weight_score, sep='\t')
     return
 
 
 def generateSpeciesProteinDomainDict(db):
     # Dictionary to return
-    bigrams = defaultdict(lambda : defaultdict(lambda : defaultdict()))
+    bigrams = defaultdict(lambda: defaultdict(lambda: defaultdict()))
 
     # create a data structure with architecture information
-    for row in db.speciesProteinArchitectureIterator():
+    for row in db.getSpeciesProteinArchitectureIterator():
         species = row['species']
         protein = row['protein']
         domains = str(row['architecture']).split('~') # Return list of proteins
@@ -143,14 +144,14 @@ def main():
         sys.stdout.write(e.message)
         sys.exit(1)
 
-
-    print ("species\tdomain\tnum_bigrams\tdomain_promiscuity\tsingleton_promiscuity_cutoff"
-           "\tIAF_d\tIV_d\tweight_score")
+    print("species\tdomain\tnum_bigrams\tdomain_promiscuity\tsingleton_promiscuity_cutoff"
+          "\tIAF_d\tIV_d\tweight_score")
     for key_species in sorted(bigrams):
         for key_domain in sorted(bigrams[key_species]):
             processDomainPromiscuity(key_domain, key_species, bigrams)
 
     return 1
+
 
 if __name__ == '__main__':
     status = main()
