@@ -38,7 +38,7 @@ class Database:
         """
         try:
             # retrieve species, protein accession and pfam architectures
-            self.cursor.execute("""select specie as species, p.accession as protein,
+            self.cursor.execute("""select specie_short as species, p.accession as protein,
                                           a.architecture
                                      from pfamseq pf
                                        inner join protein p on pf.pfamseq_acc = p.accession
@@ -188,6 +188,39 @@ class Database:
 
         except MySQLdb.Error, e:
             print e
+            raise DatabaseError(e)
+
+    def insertGoTerm(self, id, name):
+        """
+        Create a new GoTerm if it doesn't exists
+        :raise: DatabaseError
+        """
+        try:
+            # retrieve species, protein accession and pfam architectures
+            self.cursor.execute("""INSERT IGNORE INTO goTerm(id, name) VALUES (%d, "%s")""" % (id, name))
+            self.db.commit()
+            return
+
+        except MySQLdb.Error, e:
+            print e
+            self.db.rollback()
+            raise DatabaseError(e)
+
+    def insertPfamAGoTerm(self, pfamA_acc, goTerm_id):
+        """
+        Create a new association pfamA~GoTerm
+        :raise: DatabaseError
+        """
+        try:
+            # retrieve species, protein accession and pfam architectures
+            self.cursor.execute("""INSERT IGNORE INTO pfamA_goTerm(pfamA_acc, goTerm_id) VALUES ("%s", %d)"""
+                                % (pfamA_acc, goTerm_id))
+            self.db.commit()
+            return
+
+        except MySQLdb.Error, e:
+            print e
+            self.db.rollback()
             raise DatabaseError(e)
 
     def close(self):
