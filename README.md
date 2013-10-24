@@ -33,4 +33,4 @@ mysql configuration file (typically ~/.my.cnf file). It should look something li
     password=***your_password
 
 ###*Python dependencies:*
-- MySQLdb --If you have a Debian distribution try this: sudo apt-get install python-mysqldb
+- MySQLdb --If you have a Debian distribution try this: ```sudo apt-get install python-mysqldb```
