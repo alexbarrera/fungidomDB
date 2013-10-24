@@ -1,15 +1,29 @@
-import MySQLdb
+#!/usr/bin/python
+"""
+PfamLocalDatabase objects to connect, access and modify a MySQL database.
+-------------------------------------------------------------------------
+NOTE:   This scripts uses the database credentials from the .my.cnf file
+^^^^^   under a [pfam] tag. The user should be granted with CRUD
+        permissions into the pfam27 schema.
+
+"""
 import sys
+
 
 __author__ = 'abarrera'
 
 
 class DatabaseError(Exception):
+    """
+    DatabaseError inherits from Exception (therefore the extensive documentation on Exception methods..).
+    Incorporates a *msg* attribute to allow throwing customized messages.
+    """
+
     def __init__(self, msg='Unknown Database error'):
-        """
+        '''
         Database errors.
         :param msg:
-        """
+        '''
         self.message = msg
 
     def __init__(self, mySQLdbError):
@@ -18,6 +32,11 @@ class DatabaseError(Exception):
 
 
 class Database:
+    """
+    Provides access to the Pfam database.
+    Represents a centralized access point to connect, query and update the underlying database.
+    """
+
     def __init__(self):
         try:
             import MySQLdb
@@ -26,7 +45,7 @@ class Database:
                   "http://sourceforge.net/projects/mysql-python for details.")
             sys.exit(1)
 
-        self.db = MySQLdb.connect(host="localhost", user="root", passwd="569291", db="pfam27")
+        self.db = MySQLdb.connect(host="localhost", db="pfam27", read_default_group='pfam' )
         self.cursor = self.db.cursor(MySQLdb.cursors.DictCursor)
 
     def getSpeciesProteinArchitectureIterator(self):
@@ -44,7 +63,7 @@ class Database:
                                        inner join protein p on pf.pfamseq_acc = p.accession
                                        inner join architecture a on a.auto_architecture =
                                                                     pf.auto_architecture
-                                    where p.taxonomy like 'Eukaryota; Fungi%'"""
+                                    where p.specie = 'Homo sapiens'"""
             )
 
             return self.cursor
@@ -128,6 +147,37 @@ class Database:
                     inner join protein p on pf.pfamseq_acc = p.accession
                 where p.taxonomy like "Eukaryota; Fungi%"
                   and pf.auto_architecture <> 0"""
+            )
+            return self.cursor
+
+        except MySQLdb.Error, e:
+            print e
+            raise DatabaseError(e)
+
+    def getDomainsIterator(self):
+        """
+        Create an iterator to retrieve fungal domains and the species in which are present.
+
+        :return: Cursor iterator.
+        :raise: DatabaseError
+        """
+        try:
+            # retrieve species, protein accession and pfam architectures
+            self.cursor.execute("""
+                select distinct
+                    substring_index(substring_index(p.taxonomy, '; ', 4),'; ',-1) as phylum,
+                    substring_index(substring_index(p.taxonomy, '; ', 5),'; ',-1) as subphylum,
+                    substring_index(substring_index(p.taxonomy, '; ', 8),'; ',-1) as "order",
+                    replace(substring_index(p.taxonomy, '; ',-1), '.','') as genus ,
+                    substring_index(p.specie, ' (', 1) as species,
+                    p.specie as strains,
+                    pfa.pfamA_id,
+                    pfa.pfamA_acc
+                from pfamseq pf
+                      inner join protein p on pf.pfamseq_acc = p.accession
+                      inner join pfamA_architecture pa on pa.auto_architecture = pf.auto_architecture
+                      inner join pfamA pfa on pfa.auto_pfamA = pa.auto_pfamA
+                where p.taxonomy like "Eukaryota; Fungi%" """
             )
             return self.cursor
 
@@ -221,6 +271,57 @@ class Database:
         except MySQLdb.Error, e:
             print e
             self.db.rollback()
+            raise DatabaseError(e)
+
+    def getNumSpeciesPathogen(self):
+        """
+        Find total numbers of species for each pathogen group
+
+        :return: dictionary with pathogen groups keys and total number of species values
+        :raise: DatabaseError
+        """
+        try:
+            # retrieve total number of species per pathogen group
+            self.cursor.execute("""
+                SELECT p.pathogen_type,
+                    count(distinct substring_index(p.specie, ' (', 1) ) as num_species,
+                    count(distinct p.specie_short) as num_strains
+                FROM protein p
+                WHERE p.pathogen_type is not null
+                GROUP BY p.pathogen_type
+                ORDER BY p.pathogen_type;"""
+            )
+            return self.cursor
+
+        except MySQLdb.Error, e:
+            print e
+            raise DatabaseError(e)
+
+
+    def getProteins(self, pfam_in_clause=''):
+        """
+        Retrieve protein information from a list of Pfam Ids
+
+        :param pfam_list: pfam ids list
+        :return: protein information
+        """
+        #To don't overload the database, query in batches, 100 pfam_domains max
+        try:
+            self.cursor.execute("""
+                select distinct p.accession, p.full_name, p.transmembrane, p.membrane, p.cell_wall,
+                                p.specie, p.taxonomy, p.pathogen_type, aa.architecture, aa.architecture_acc
+                from pfamseq pf
+                      inner join protein p on pf.pfamseq_acc = p.accession
+                      inner join architecture aa on aa.auto_architecture = pf.auto_architecture
+                      inner join pfamA_architecture pa on pa.auto_architecture = pf.auto_architecture
+                      inner join pfamA pfa on pfa.auto_pfamA = pa.auto_pfamA
+                where pfa.pfamA_id in ('%s')
+                order by p.specie;""" % pfam_in_clause
+            )
+            return self.cursor
+
+        except MySQLdb.Error, e:
+            print e
             raise DatabaseError(e)
 
     def close(self):
