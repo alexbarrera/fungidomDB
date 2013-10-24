@@ -32,11 +32,12 @@ LEAF_CORE_TAXA_TYPE = 'strains'
 
 def generateArchitectureDataStructure(db):
     """
-    Create a dictionary with domain architectures exclusive in a single pathogen type group.
-    :param db: database object
+    Create a dictionary with domain architectures.
+    :param
+        db: database object
     :return: dictionary
-        key: tuple (architecture_acc, architecture)
-        value: list of pathogen_type
+        key: tuple with architecture accessions
+        value: list of elements matching the query
             (it might contain duplicates, but all values are equal => convert to set)
     """
     architectures = defaultdict(lambda: defaultdict(list))
@@ -47,6 +48,24 @@ def generateArchitectureDataStructure(db):
     return architectures
 
 
+def generateDomainsDataStructure(db):
+    """
+    Create a dictionary with domains and species represented.
+    :param
+        db: database object
+    :return: dictionary
+        key: tuple with domain accessions
+        value: list of elements matching the query
+            (it might contain duplicates, but all values are equal => convert to set)
+    """
+    domains = defaultdict(lambda: defaultdict(list))
+
+    for row in db.getDomainsIterator():
+        for tax_name in TAXONOMY_TYPES:
+            domains[(row['pfamA_id'], row['pfamA_acc'])][tax_name].append(row[tax_name])
+    return domains
+
+
 def getTaxonomyCounts(db):
     taxonomy_counts = defaultdict(int)
     for row in db.getTaxonomyIterator():
@@ -55,18 +74,10 @@ def getTaxonomyCounts(db):
     return taxonomy_counts
 
 
-def main():
-    try:
-        db = Database()
-        architectures = generateArchitectureDataStructure(db)
-        taxonomy_counts = getTaxonomyCounts(db)
-        db.close()
-    except DatabaseError, e:
-        sys.stdout.write(e.message)
-        sys.exit(1)
-
+def core_architectures(architectures, taxonomy_counts):
     # Architectures exclusive by phylum
-    print("architecture_ids", "architectures_acc", sep="\t", end="\t")
+    print("architecture_id", "architectures_acc", sep="\t", end="\t")
+
     for taxon_index in range(len(TAXONOMY_TYPES) - 1):
         print(TAXONOMY_TYPES[taxon_index], "core", sep="\t", end="\t")
     print()
@@ -86,6 +97,46 @@ def main():
             else:
                 print(0, 0, sep="\t", end="\t")
         print()
+    return
+
+
+def core_domains(domains, taxonomy_counts):
+    # Domains exclusive by phylum
+    print("pfamA_id", "pfamA_acc", sep="\t", end="\t")
+
+    for taxon_index in range(len(TAXONOMY_TYPES) - 1):
+        print(TAXONOMY_TYPES[taxon_index], "core", sep="\t", end="\t")
+    print()
+
+    for domain in sorted(domains, key=lambda row: row[0].lower()):
+        print(domain[0], domain[1], sep="\t", end="\t")
+        for taxa_index in range(len(TAXONOMY_TYPES) - 1):
+            if len(set(domains[domain][TAXONOMY_TYPES[taxa_index]])) == 1:
+                print(domains[domain][TAXONOMY_TYPES[taxa_index]][0], sep="\t", end="\t")
+                # Core?
+                num_sub_taxa = len(set(domains[domain][LEAF_CORE_TAXA_TYPE]))
+                max_aux = taxonomy_counts[domains[domain][TAXONOMY_TYPES[taxa_index]][0]]
+                if num_sub_taxa == max_aux:
+                    print(1, sep="\t", end="\t")
+                else:
+                    print(0, sep="\t", end="\t")
+            else:
+                print(0, 0, sep="\t", end="\t")
+        print()
+    return
+
+
+def main():
+    try:
+        db = Database()
+        # architectures = generateArchitectureDataStructure(db)
+        taxonomy_counts = getTaxonomyCounts(db)
+        # core_architectures(generateArchitectureDataStructure(db), taxonomy_counts)
+        core_domains(generateDomainsDataStructure(db), taxonomy_counts)
+        db.close()
+    except DatabaseError, e:
+        sys.stdout.write(e.message)
+        sys.exit(1)
 
     return 1
 
