@@ -9,9 +9,8 @@ NOTE:   This scripts uses the database credentials from the .my.cnf file
 """
 import sys
 
-
 __author__ = 'abarrera'
-
+__version__ = "$Revision: $"
 
 class DatabaseError(Exception):
     """
@@ -63,7 +62,7 @@ class Database:
                                        inner join protein p on pf.pfamseq_acc = p.accession
                                        inner join architecture a on a.auto_architecture =
                                                                     pf.auto_architecture
-                                    where p.specie = 'Homo sapiens'"""
+                                    where p.specie <> 'Homo sapiens'"""
             )
 
             return self.cursor
