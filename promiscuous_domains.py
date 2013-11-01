@@ -2,28 +2,29 @@
 
 from __future__ import division
 from __future__ import print_function
+import argparse
 from collections import defaultdict
 from math import log, sqrt
 import sys
+import textwrap
 from PfamLocalDatabase import Database, DatabaseError
 
+
 """
-Analysis of the protein domain promiscuity.
+Analysis of *domain promiscuity* in all fungal species in the local MySQL database.
+Promiscuity refers to the grade in which a domain appears in different combinations
+within a proteome -protein set of an organism-. The Weighted Bigram Frequency (Basu et al. 2008)
+is used to measure domain promiscuity.
+This script can be used for:
 
-Generates a tab-separated file with 2 different promiscuity quantitative measures:
-   1. Weighted Bigram Frequency (Basu et al. 2008)
-   2. Weight Score (Lee et al. 2009)
-
-@:param db_user
-@:param db_password
-@:param db_user
-
+    Compute domain promiscuity using WBF scores.
+    List the ranking of most promiscuous domains.
+    Produce a distance matrix based in promiscuous domains contents in a format accepted by Phylip.
 
 Author: Alejandro Barrera
 email: aebmad@gmail.com
 
 """
-
 __author__ = 'abarrera'
 __version__ = "$Revision: cfd6d2cb1ca6 $"
 # $Source$
@@ -168,9 +169,8 @@ class PromiscuousDomain(object):
         return self.name == other.name
 
 
-def generatePromiscuousRankingOutput(bigrams):
+def generatePromiscuousRankingOutput(bigrams, n=25):
     # Compute domain promiscuity and ranking of top "n" promiscuous domains
-    n = 25
 
     topPromiscuousDomainsPi = defaultdict(PromiscuousDomain)
     topPromiscuousDomainsWF = defaultdict(PromiscuousDomain)
@@ -259,7 +259,13 @@ def distanceBetweenSpecies(listPromsDomainsA, squaredMetricsA, listPromsDomainsB
     return 1 - similarityBetweenSpecies(listPromsDomainsA, squaredMetricsA, listPromsDomainsB, squaredMetricsB)
 
 
-def angularSeparationMethod(bigrams):
+def generateDistanceMatrix(bigrams):
+    """
+    Implementation of the angular separation method to compute the distance between fungal species.
+    * Prints the distance matrix on STDOUT *
+    :param bigrams: collection of bigrams used as input to compute the distance matrix
+    """
+
     # Collection of promiscuous domains by species
     speciesInfo = defaultdict(list)
 
@@ -301,17 +307,49 @@ def angularSeparationMethod(bigrams):
 
 
 def main():
+    """
+    Analysis of promiscuous domains from a local MySQL database.
+    -----------------------------------------------------------
+
+    [Note] By default it computes the list of promiscuous domains with WBF scores.
+    """
     try:
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description=textwrap.dedent('''
+            Analysis of promiscuous domains from a local MySQL database.
+            ------------------------------------------------------------
+
+            [Note] By default it computes the list of promiscuous domains with WBF scores.
+            '''))
+        parser.add_argument('-a', '--all', action='store_true',
+                            help='Generate a tab-separated list of promiscuous domains with WBF scores.')
+        parser.add_argument('-m', '--matrix', action='store_true',
+                            help='generate a distance matrix of promiscuous domains according to the '
+                                 'angular separation method (based in WBF scores.')
+        parser.add_argument('-r', '--ranking', nargs='?', const=25,
+                            help='Ranking of the most promiscuous domains in all species according to the WBF scores.'
+                                 'This option accepts a parameter to compute the *N* top promiscuous domains of each '
+                                 'species. By default, 25.')
+        args = parser.parse_args()
+
         db = Database()
         bigrams = generateSpeciesProteinDomainDict(db)
+
+        if args.all or not len(sys.argv) > 1:
+            sys.exit(1)
+            generatePromiscuousDomainOutput(bigrams)
+        if args.matrix:
+            generateDistanceMatrix(bigrams)
+        if args.ranking:
+            generatePromiscuousRankingOutput(bigrams, args.ranking)
+
         db.close()
+
     except DatabaseError, e:
         sys.stdout.write(e.message)
         sys.exit(1)
 
-    # generatePromiscuousRankingOutput(bigrams)
-    # generatePromiscuousDomainOutput(bigrams)
-    angularSeparationMethod(bigrams)
     return 1
 
 
