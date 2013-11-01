@@ -1,15 +1,4 @@
 #!/usr/bin/python
-
-from __future__ import division
-from __future__ import print_function
-import argparse
-from collections import defaultdict
-from math import log, sqrt
-import sys
-import textwrap
-from PfamLocalDatabase import Database, DatabaseError
-
-
 """
 Analysis of *domain promiscuity* in all fungal species in the local MySQL database.
 Promiscuity refers to the grade in which a domain appears in different combinations
@@ -25,6 +14,16 @@ Author: Alejandro Barrera
 email: aebmad@gmail.com
 
 """
+
+from __future__ import division
+from __future__ import print_function
+import argparse
+from collections import defaultdict
+from math import log, sqrt
+import sys
+import textwrap
+from PfamLocalDatabase import Database, DatabaseError
+
 __author__ = 'abarrera'
 __version__ = "$Revision: cfd6d2cb1ca6 $"
 # $Source$
@@ -95,7 +94,7 @@ def processDomainPromiscuity(domain=None, key_species=None, bigrams=None):
         sum_i_t += len(set(bigrams[key_species][domain_iter]['neighbours']))
         protein_list.append(bigrams[key_species][domain_iter]['proteins'])
 
-    p_t = len(set([iter for sublist in protein_list for iter in sublist]))
+    p_t = len(set([_iter for sub_list in protein_list for _iter in sub_list]))
 
     f_i = n_i / N
 
@@ -337,7 +336,6 @@ def main():
         bigrams = generateSpeciesProteinDomainDict(db)
 
         if args.all or not len(sys.argv) > 1:
-            sys.exit(1)
             generatePromiscuousDomainOutput(bigrams)
         if args.matrix:
             generateDistanceMatrix(bigrams)
